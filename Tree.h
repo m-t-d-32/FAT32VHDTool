@@ -55,7 +55,7 @@ public:
         FAT32_file DIRECT_ROOT_FILE = { "/", "", 0x10, 0, 0, dbr_info.root_cluster, 0, "" };
         this->fat32_file_reader = new FAT32FileReader(dbrReader->getDirectReader(), dbr_info);
         root = create_tree(DIRECT_ROOT_FILE);
-        root->parent = NULL;
+        root->parent = nullptr;
     }
 
     Node * create_tree(FAT32_file current_file) {
@@ -148,6 +148,19 @@ public:
         if (node->parent){
             delete_from_parent(node);
         }
+    }
+
+    void rr_delete(Node * root){
+        if (!root){
+            for (int i = 0; i < root->children.size(); ++i){
+                rr_delete(root->children[i]);
+            }
+        }
+        delete root;
+    }
+
+    ~Tree(){
+        rr_delete(root);
     }
 
 };

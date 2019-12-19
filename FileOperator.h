@@ -20,7 +20,7 @@ public:
     FileOperator(QString filename){
         devfile = new QFile(filename);
         if (!devfile->open(QIODevice::ReadWrite)){
-            devfile = NULL;
+            devfile = nullptr;
             throw INVALID_SRC_FILE{};
         }
     }
@@ -71,7 +71,7 @@ public:
     ~FileOperator(){
         devfile->close();
         delete devfile;
-        devfile = NULL;
+        devfile = nullptr;
     }
 };
 

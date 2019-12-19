@@ -148,7 +148,7 @@ public:
             file_operator->write_bytes(fat_begin + sizeof(unsigned) + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), SECOND_CLUSTER);
         }
         delete []buffer;
-        qDebug() << "success";
+        //qDebug() << "success";
     }
 
     void verify_fat32() {

@@ -20,7 +20,7 @@ public:
             QFile * f = new QFile(destFile);
             if (!f->open(QIODevice::ReadWrite)){
                 delete f;
-                QMessageBox::warning(NULL, "写入失败！", "写入文件" + destFile + "失败！");
+                QMessageBox::warning(nullptr, "写入失败！", "写入文件" + destFile + "失败！");
                 return;
             }
             DBR dbr_info = reader->get_dbr();
@@ -50,7 +50,7 @@ public:
                 bool ok = d->mkdir(destFile);
                 delete d;
                 if(!ok){
-                    QMessageBox::warning(NULL, "创建文件夹", "文件夹" + destFile + "创建失败！");
+                    QMessageBox::warning(nullptr, "创建文件夹", "文件夹" + destFile + "创建失败！");
                     return;
                 }
             }

@@ -9,7 +9,7 @@ FileCreator::FileCreator(QWidget *parent) :
     ui->setupUi(this);
     ui->spinBox_2->setFocusPolicy(Qt::NoFocus);
     will_accepted = false;
-    will_create_size = 4;
+    will_create_size = 256;
     will_cluster_size = 1;
     will_section_size = 512;
 }
