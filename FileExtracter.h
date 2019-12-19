@@ -6,7 +6,6 @@
 #include "FAT32FileReader.h"
 #include "DEFINES.h"
 #include "Tree.h"
-#include <direct.h>
 #include <QDir>
 #include <QByteArray>
 #include <QMessageBox>

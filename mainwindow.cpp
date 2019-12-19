@@ -80,10 +80,10 @@ void MainWindow::on_openFile_triggered()
         tree = nullptr;
     }
 
-    direct_operator = new FileOperator(filename.toLatin1().data());
-    dbr_operator = new DBROperator();
-    dbr_operator->init_dbr(direct_operator);
     try {
+        direct_operator = new FileOperator(filename);
+        dbr_operator = new DBROperator();
+        dbr_operator->init_dbr(direct_operator);
         dbr_operator->verify_fat32();
     } catch (INVALID_SRC_FILE) {
         QMessageBox::critical(nullptr, "错误", "无法打开此文件！");
