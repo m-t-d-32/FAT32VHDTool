@@ -1,6 +1,6 @@
 #include <iostream>
-#include "FAT32FileReader.h"
-#include "DEFINES.h"
+#include "fat32_file_reader.h"
+#include "defines.h"
 #include <vector>
 #include <QDebug>
 #include <string>

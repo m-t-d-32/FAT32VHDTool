@@ -1,11 +1,11 @@
 #ifndef EXTRACT_H
 #define EXTRACT_H
 
-#include "DBROperator.h"
-#include "FileOperator.h"
-#include "FAT32FileReader.h"
-#include "DEFINES.h"
-#include "Tree.h"
+#include "dbr_operator.h"
+#include "file_operator"
+#include "fat32_file_reader.h"
+#include "defines.h"
+#include "tree.h"
 #include <QDir>
 #include <QByteArray>
 #include <QMessageBox>

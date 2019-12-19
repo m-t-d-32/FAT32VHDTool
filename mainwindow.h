@@ -2,12 +2,12 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "FileOperator.h"
-#include "Tree.h"
-#include "FAT32FileReader.h"
-#include "DBROperator.h"
+#include "file_operator"
+#include "tree.h"
+#include "fat32_file_reader.h"
+#include "dbr_operator.h"
 #include <QStandardItemModel>
-#include "fileitem.h"
+#include "file_item.h"
 #include <QModelIndex>
 
 namespace Ui {
@@ -35,7 +35,15 @@ private slots:
 
     void on_deleteButton_clicked();
 
+    void reset_tree_item_width();
+
     void fflush();
+
+    void on_help_triggered();
+
+protected:
+
+    virtual void resizeEvent(QResizeEvent * event) override;
 
 private:
     Ui::MainWindow *ui;
@@ -45,6 +53,7 @@ private:
     DBROperator * dbr_operator;
     Tree * tree;
     QModelIndex selected_index;
+
 };
 
 #endif // MAINWINDOW_H

@@ -1,6 +1,6 @@
-#include "createfile.h"
+#include "file_creator.h"
 #include "ui_createfile.h"
-#include "DEFINES.h"
+#include "defines.h"
 
 FileCreator::FileCreator(QWidget *parent) :
     QDialog(parent),

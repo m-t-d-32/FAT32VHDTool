@@ -1,10 +1,10 @@
-#include "FileOperator.h"
-#include "DBROperator.h"
+#include "file_operator"
+#include "dbr_operator.h"
 #include <string>
 #include <iostream>
 #include <vector>
 #include <QDebug>
-#include "DEFINES.h"
+#include "defines.h"
 #include <QTextCodec>
 
 #ifndef FAT32_file_H

@@ -1,6 +1,6 @@
 #include <iostream>
-#include "FileOperator.h"
-#include "DEFINES.h"
+#include "file_operator"
+#include "defines.h"
 #include <vector>
 #include <map>
 #include <string>

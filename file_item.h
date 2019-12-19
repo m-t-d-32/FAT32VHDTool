@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QStandardItem>
-#include "Tree.h"
+#include "tree.h"
 
 class FileItem : public QStandardItem
 {

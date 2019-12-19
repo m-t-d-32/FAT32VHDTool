@@ -1,7 +1,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#include "FAT32_file.h"
+#include "fat32_file.h"
 #include <cstring>
 
 #define LAST_DIR ".."
@@ -38,6 +38,23 @@ inline bool is_deleted(unsigned char t){return t == DELETED_TYPE;}
 inline bool is_long(unsigned char t){return t == LONG_FILE_TYPE;}
 inline bool is_invalid_cluster(unsigned t){return t >= INVALID_FILE_CLUSTER;}
 inline bool is_last_long(unsigned t){return t & 0x40;}
+inline QString to_preferred_size(long size){
+    float b = size;
+    QString result = "B";
+    if (b >= EVERY_KB){
+        result = "KB";
+        b /= EVERY_KB;
+        if (b >= EVERY_MB){
+            result = "MB";
+            b /= EVERY_MB;
+            if (b >= EVERY_GB){
+                result = "MB";
+                b /= EVERY_GB;
+            }
+        }
+    }
+    return QString::number(b) + result;
+}
 
 inline void rstrip(char * str){
     int len = strlen(str), i = 0;

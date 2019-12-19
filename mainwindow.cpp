@@ -2,16 +2,16 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QDebug>
-#include "FileOperator.h"
-#include "Tree.h"
+#include "file_operator"
+#include "tree.h"
 #include <QVBoxLayout>
 #include <QTreeView>
 #include <QStandardItemModel>
 #include <queue>
 #include <QMessageBox>
 #include <QByteArray>
-#include "FileExtracter.h"
-#include "createfile.h"
+#include "file_extracter.h"
+#include "file_creator.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -26,6 +26,10 @@ MainWindow::MainWindow(QWidget *parent) :
     direct_operator = nullptr;
     dbr_operator = nullptr;
     tree = nullptr;
+}
+
+void MainWindow::resizeEvent(QResizeEvent * event){
+    reset_tree_item_width();
 }
 
 MainWindow::~MainWindow()
@@ -47,13 +51,17 @@ void MainWindow::on_newFile_triggered()
             QMessageBox::information(nullptr, "成功", "创建文件成功");
             fflush();
         }
-    }//qDebug() << filename << "\n";
+    }
 }
 
 void MainWindow::set_tree(Tree::Node * root, FileItem * item){
-    for (auto it: root->children){
+    for (unsigned i = 0; i < root->children.size(); ++i){
+        auto it = root->children[i];
         FileItem * new_item = new FileItem(it);
         item->appendRow(new_item);
+        if (is_file(it->file)){
+            item->setChild(i, 1, new QStandardItem(to_preferred_size(it->file.size)));
+        }
         set_tree(it, new_item);
     }
 }
@@ -96,18 +104,29 @@ void MainWindow::on_openFile_triggered()
     fflush();
 }
 
+void MainWindow::reset_tree_item_width(){
+    ui->treeView->setColumnWidth(0, ui->treeView->width() / 2);
+    ui->treeView->setColumnWidth(1, ui->treeView->width() / 2);
+}
+
+
 void MainWindow::fflush(){
     delete tree;
     tree = new Tree(dbr_operator);
     model->clear();
 
-    model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("文件名")<<QStringLiteral("完整名"));
+    model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("文件名")<<QStringLiteral("大小"));
+
+    reset_tree_item_width();
     selected_index = model->index(-1, 1);
     //tree->print_tree();
 
     for (auto it: tree->getRoot()->children){
         FileItem * item = new FileItem(it);
         model->appendRow(item);
+        if (is_file(it->file)){
+            model->setItem(model->rowCount() - 1, 1, new QStandardItem(to_preferred_size(it->file.size)));
+        }
         set_tree(it, item);
     }
 }
@@ -122,8 +141,10 @@ void MainWindow::on_extractButton_clicked()
         QString defaultName = selected_item->get_node()->file.long_filename;
         QString filename = QFileDialog::getSaveFileName(this,
             "请选择要保存的路径", defaultName, "所有文件(*)");
-        FileExtracter::extract_file(filename, selected_item->get_node(), dbr_operator);
-        QMessageBox::information(nullptr, "提取", "提取完毕！");
+        if (filename.length() > 0){
+            FileExtracter::extract_file(filename, selected_item->get_node(), dbr_operator);
+            QMessageBox::information(nullptr, "提取", "提取完毕！");
+        }
     }
 }
 
@@ -143,4 +164,9 @@ void MainWindow::on_deleteButton_clicked()
         tree->delete_file(node);
         fflush();
     }    
+}
+
+void MainWindow::on_help_triggered()
+{
+    QMessageBox::information(nullptr, "关于产品", "本产品是为了宣传编译器框架LYRON构建的，详细请访问https://github.com/llyronx/LYRON");
 }

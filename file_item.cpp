@@ -1,4 +1,4 @@
-#include "fileitem.h"
+#include "file_item.h"
 
 FileItem::FileItem(Tree::Node * node):QStandardItem(node->file.long_filename)
 {
@@ -8,3 +8,4 @@ FileItem::FileItem(Tree::Node * node):QStandardItem(node->file.long_filename)
 Tree::Node * FileItem::get_node(){
     return treenode;
 }
+
