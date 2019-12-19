@@ -2,11 +2,10 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "DirectRead.h"
-#include "Exception.h"
+#include "FileOperator.h"
 #include "Tree.h"
 #include "FAT32FileReader.h"
-#include "DBRReader.h"
+#include "DBROperator.h"
 #include <QStandardItemModel>
 #include "fileitem.h"
 #include <QModelIndex>
@@ -28,21 +27,23 @@ private slots:
 
     void on_openFile_triggered();
 
-    void setTree(Tree::Node * root, FileItem * item);
+    void set_tree(Tree::Node * root, FileItem * item);
 
-    void on_pushButton_clicked();
+    void on_extractButton_clicked();
 
     void on_treeView_clicked(const QModelIndex &index);
+
+    void on_deleteButton_clicked();
+
+    void fflush();
 
 private:
     Ui::MainWindow *ui;
     QStandardItemModel * model;
 
-    DirectRead * directReader;
-    DBRReader * fat32Reader;
-    FAT32FileReader * fat32FileReader;
+    FileOperator * direct_operator;
+    DBROperator * dbr_operator;
     Tree * tree;
-
     QModelIndex selected_index;
 };
 

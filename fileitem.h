@@ -10,7 +10,7 @@ class FileItem : public QStandardItem
 public:
     FileItem(Tree::Node *);
 
-    Tree::Node * getNode();
+    Tree::Node * get_node();
 private:
     Tree::Node * treenode;
 };

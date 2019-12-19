@@ -24,23 +24,24 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
-    Exception.cpp \
+    createfile.cpp \
     fileitem.cpp \
         main.cpp \
         mainwindow.cpp
 
 HEADERS += \
-    DBRReader.h \
+    DBROperator.h \
     DEFINES.h \
-    Exception.h \
-    Extract.h \
     FAT32_file.h \
+    FileExtracter.h \
+    FileOperator.h \
+    createfile.h \
     fileitem.h \
         mainwindow.h \
-    DirectRead.h \
     Tree.h \
     FAT32FileReader.h
 
 FORMS += \
+        createfile.ui \
         mainwindow.ui
 
