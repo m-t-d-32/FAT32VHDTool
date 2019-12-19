@@ -30,6 +30,7 @@ SOURCES += \
     file_item.cpp
 
 HEADERS += \
+    file_operator.h \
         mainwindow.h \
     defines.h \
     fat32_file.h \
@@ -38,7 +39,6 @@ HEADERS += \
     file_creator.h \
     file_extracter.h \
     file_item.h \
-    file_operator \
     tree.h
 
 FORMS += \

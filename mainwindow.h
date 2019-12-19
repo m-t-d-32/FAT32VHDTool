@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "file_operator"
+#include "file_operator.h"
 #include "tree.h"
 #include "fat32_file_reader.h"
 #include "dbr_operator.h"

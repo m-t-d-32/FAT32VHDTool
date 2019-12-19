@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QDebug>
-#include "file_operator"
+#include "file_operator.h"
 #include "tree.h"
 #include <QVBoxLayout>
 #include <QTreeView>
