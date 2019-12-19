@@ -1,5 +1,5 @@
 #include "file_creator.h"
-#include "ui_createfile.h"
+#include "ui_filecreator.h"
 #include "defines.h"
 
 FileCreator::FileCreator(QWidget *parent) :

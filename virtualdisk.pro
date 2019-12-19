@@ -43,5 +43,5 @@ HEADERS += \
 
 FORMS += \
         mainwindow.ui \
-    file_creator.ui
+    filecreator.ui
 
