@@ -1,9 +1,9 @@
-#ifndef FILEITEM_H
+﻿#ifndef FILEITEM_H
 #define FILEITEM_H
 
 #include <QObject>
 #include <QStandardItem>
-#include "tree.h"
+#include <tree.h>
 
 class FileItem : public QStandardItem
 {

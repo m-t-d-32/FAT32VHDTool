@@ -1,10 +1,10 @@
-#include "file_operator.h"
-#include "dbr_operator.h"
+﻿#include <file_operator.h>
+#include <dbr_operator.h>
 #include <string>
 #include <iostream>
 #include <vector>
 #include <QDebug>
-#include "defines.h"
+#include <defines.h>
 #include <QTextCodec>
 
 #ifndef FAT32_file_H
@@ -97,13 +97,8 @@ public:
                          is_deleted(result.file_name[0]) ||
                          is_long(result) ||
                          is_volume(result)){
-                    ++cluster_item_index;
-                    if (cluster_item_index * EVERY_ITEM_LENGTH >= dbr_info.cluster_size * dbr_info.section_size){
-                        cluster_item_index = 0;
-                        clusters_index++;
-                        if (clusters_index >= clusters.size()){
-                            break;
-                        }
+                    if (!add_1(clusters_index, cluster_item_index, clusters, dbr_info)){
+                        break;
                     }
                 }
                 else {
@@ -121,25 +116,16 @@ public:
                 unsigned bk_cluster_item_index = cluster_item_index;
                 std::vector<unsigned short> temp_long_filename;
                 while (true){
-                    /*每次向前一个目录项*/
-                    if (bk_cluster_item_index == 0){
-                        if (bk_clusters_index == 0){
-                            break;
-                        }
-                        else {
-                            --bk_clusters_index;
-                            bk_cluster_item_index = dbr_info.cluster_size * dbr_info.section_size / EVERY_ITEM_LENGTH - 1;
-                        }
-                    }
-                    else {
-                        --bk_cluster_item_index;
+                    /*每次向前一个目录项*/                    
+                    if (!sub_1(bk_clusters_index, bk_cluster_item_index, dbr_info)){
+                        break;
                     }
 
                     unsigned begin = (dbr_info.cluster_size * (clusters[bk_clusters_index] - dbr_info.root_cluster)
                           + dbr_info.reserved_section_count + dbr_info.table_count * dbr_info.table_section_count) * dbr_info.section_size;
                     begin += bk_cluster_item_index * EVERY_ITEM_LENGTH;
 
-                    unsigned long_begin[] = { 0x1, 0xe, 0x1c }, long_end[] = { 0xa, 0x19, 0x1f };
+                    unsigned long_begin[] = { 0x1, 0xe, 0x1c }, long_end[] = { 0xb, 0x1a, 0x20 };
 
                     unsigned char ibyte = (unsigned char)file_operator->read_bytes(begin, sizeof(char));
                     unsigned char xbyte = (unsigned char)file_operator->read_bytes(file_sectors["file type"].first + begin, file_sectors["file type"].second);
@@ -154,7 +140,7 @@ public:
 
                     bool end = false;
                     for (unsigned i = 0; i < sizeof(long_begin) / sizeof(unsigned); ++i){
-                        for (unsigned j = long_begin[i]; j <= long_end[i]; j += sizeof(unsigned short)){
+                        for (unsigned j = long_begin[i]; j < long_end[i]; j += sizeof(unsigned short)){
                             unsigned short temp_char = file_operator->read_bytes(j + begin, sizeof(unsigned short));
                             if (is_long_end(temp_char)){
                                 /*0xff表示是最后一个目录项*/
@@ -195,13 +181,8 @@ public:
                 parsing_long = false;
 
                 /*修改指针*/
-                ++cluster_item_index;
-                if (cluster_item_index * EVERY_ITEM_LENGTH >= dbr_info.cluster_size * dbr_info.section_size){
-                    cluster_item_index = 0;
-                    clusters_index++;
-                    if (clusters_index >= clusters.size()){
-                        break;
-                    }
+                if (!add_1(clusters_index, cluster_item_index, clusters, dbr_info)){
+                    break;
                 }
             }
         }
@@ -238,24 +219,13 @@ public:
 
                 while(true){
                     /* 删除目录项之前的长文件名 */
-                    if (cluster_item_index == 0){
-                        if (clusters_index == 0){
-                            break;
-                        }
-                        else {
-                            --clusters_index;
-                            cluster_item_index = dbr_info.cluster_size * dbr_info.section_size / EVERY_ITEM_LENGTH - 1;
-                        }
-                    }
-                    else {
-                        --cluster_item_index;
-                    }
+                    sub_1(clusters_index, cluster_item_index, dbr_info);
 
                     begin = (dbr_info.cluster_size * (clusters[clusters_index] - dbr_info.root_cluster)
                           + dbr_info.reserved_section_count + dbr_info.table_count * dbr_info.table_section_count) * dbr_info.section_size;
                     begin += cluster_item_index * EVERY_ITEM_LENGTH;
                     unsigned char ibyte = (unsigned char)file_operator->read_bytes(begin, sizeof(char));
-                    unsigned char xbyte = (unsigned char)file_operator->read_bytes(filenameinfo.first + begin, filenameinfo.second);
+                    unsigned char xbyte = (unsigned char)file_operator->read_bytes(file_sectors["file type"].first + begin, file_sectors["file type"].second);
                     if (is_deleted(ibyte)){
                         /*如果是删除项一定不是长目录项*/
                         break;
@@ -270,16 +240,9 @@ public:
             }
 
             /*修改指针*/
-            ++cluster_item_index;
-            if (cluster_item_index * EVERY_ITEM_LENGTH >= dbr_info.cluster_size * dbr_info.section_size){
-                cluster_item_index = 0;
-                clusters_index++;
-                if (clusters_index >= clusters.size()){
-                    break;
-                }
-            }
+            add_1(clusters_index, cluster_item_index, clusters, dbr_info);
         }
-        throw 0;
+        throw int();
     }
 
     inline unsigned file_sectors_begin(const char * str){

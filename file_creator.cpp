@@ -1,4 +1,4 @@
-#include "file_creator.h"
+﻿#include "file_creator.h"
 #include "ui_filecreator.h"
 #include "defines.h"
 

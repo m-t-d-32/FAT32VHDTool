@@ -1,4 +1,4 @@
-#ifndef FAT32_FILE_H
+﻿#ifndef FAT32_FILE_H
 #define FAT32_FILE_H
 
 #include <string>

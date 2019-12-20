@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QDebug>
@@ -169,4 +169,47 @@ void MainWindow::on_deleteButton_clicked()
 void MainWindow::on_help_triggered()
 {
     QMessageBox::information(nullptr, "关于产品", "本产品是为了宣传编译器框架LYRON构建的，详细请访问https://github.com/llyronx/LYRON");
+}
+
+void MainWindow::on_addFileButton_clicked()
+{
+    if (!tree){
+        QMessageBox::information(nullptr, "无法添加", "没有打开虚拟磁盘文件！");
+    }
+    else {
+        Tree::Node * node;
+        if (selected_index.row() < 0){
+            node = tree->getRoot();
+        }
+        else {
+            FileItem * selected_item = (FileItem *)model->itemFromIndex(selected_index);
+            node = selected_item->get_node();
+            if (!is_folder(node->file)){
+                QMessageBox::critical(nullptr, "错误", "只能向文件夹中添加文件！");
+                return;
+            }
+        }
+
+        QStringList filenames = QFileDialog::getOpenFileNames(this, "添加文件");
+        tree->begin_find_free_cluster();
+        tree->revert_FAT(); /* 防止之前的不一致 */
+        try {
+            /* 开始事务操作 */
+            for (QString qs: filenames){
+                tree->add_file(node, qs);
+            }
+            tree->commit_FAT();
+        } catch (...) {
+            QMessageBox::critical(nullptr, "错误", "空间不足！");
+            tree->revert_FAT();
+        }
+        tree->end_find_free_cluster();
+        fflush();
+    }
+}
+
+void MainWindow::on_addFolderButton_clicked()
+{
+    QString foldername = QFileDialog::getExistingDirectory(this, "添加文件夹");
+    qDebug() << foldername;
 }

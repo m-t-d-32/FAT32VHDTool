@@ -30,6 +30,7 @@ SOURCES += \
     file_item.cpp
 
 HEADERS += \
+    dbr.h \
     file_operator.h \
         mainwindow.h \
     defines.h \

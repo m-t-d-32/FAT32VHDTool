@@ -1,13 +1,13 @@
-#ifndef MAINWINDOW_H
+﻿#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "file_operator.h"
-#include "tree.h"
-#include "fat32_file_reader.h"
-#include "dbr_operator.h"
+#include <file_operator.h>
+#include <tree.h>
+#include <fat32_file_reader.h>
+#include <dbr_operator.h>
 #include <QStandardItemModel>
-#include "file_item.h"
+#include <file_item.h>
 #include <QModelIndex>
 
 namespace Ui {
@@ -40,6 +40,10 @@ private slots:
     void fflush();
 
     void on_help_triggered();
+
+    void on_addFileButton_clicked();
+
+    void on_addFolderButton_clicked();
 
 protected:
 

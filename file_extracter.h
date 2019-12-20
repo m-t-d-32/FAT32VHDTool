@@ -1,11 +1,11 @@
-#ifndef EXTRACT_H
+﻿#ifndef EXTRACT_H
 #define EXTRACT_H
 
-#include "dbr_operator.h"
-#include "file_operator.h"
-#include "fat32_file_reader.h"
-#include "defines.h"
-#include "tree.h"
+#include <dbr_operator.h>
+#include <file_operator.h>
+#include <fat32_file_reader.h>
+#include <defines.h>
+#include <tree.h>
 #include <QDir>
 #include <QByteArray>
 #include <QMessageBox>
@@ -30,7 +30,7 @@ public:
                 + dbr_info.reserved_section_count + dbr_info.table_count * dbr_info.table_section_count) * dbr_info.section_size;
                 unsigned size = dbr_info.cluster_size * dbr_info.section_size >
                         fileinfo.size ? fileinfo.size : dbr_info.cluster_size * dbr_info.section_size;
-                reader->getDirectReader()->read_blocks(begin, size, buffer);
+                reader->get_file_operator()->read_blocks(begin, size, buffer);
                 f->write(buffer, size);
 
                 fileinfo.size -= size;

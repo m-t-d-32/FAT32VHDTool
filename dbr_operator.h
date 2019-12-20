@@ -1,25 +1,15 @@
-#include <iostream>
-#include "file_operator.h"
-#include "defines.h"
+﻿#include <iostream>
+#include <file_operator.h>
+#include <defines.h>
 #include <vector>
 #include <map>
 #include <string>
 #include <QDebug>
+#include <dbr.h>
 
 #ifndef FAT32_H
 #define FAT32_H
 #define FAT_ITEM_SIZE 4
-
-
-typedef struct {
-    unsigned table_count;   /* FAT表个数 */
-    unsigned section_size;  /* 每扇区字节数 */
-    unsigned table_section_count; /* FAT表扇区数 */
-    unsigned reserved_section_count; /* 保留扇区数 */
-    unsigned cluster_size; /* 每簇扇区数 */
-    unsigned root_cluster; /* 根目录簇序号 */
-    long cluster_count; /* 簇个数 */
-} DBR;
 
 typedef struct {
 
@@ -146,6 +136,12 @@ public:
         for (int i = 0; i < dbr.table_count; ++i){
             file_operator->write_bytes(fat_begin + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), FIRST_CLUSTER);
             file_operator->write_bytes(fat_begin + sizeof(unsigned) + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), SECOND_CLUSTER);
+            //file_operator->write_bytes(fat_begin + sizeof(unsigned))
+        }
+        /* 初始化根目录 */
+        for (int i = 0; i < dbr.table_count; ++i){
+            file_operator->write_bytes(fat_begin + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), FIRST_CLUSTER);
+            file_operator->write_bytes(fat_begin + sizeof(unsigned) + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), SECOND_CLUSTER);
         }
         delete []buffer;
         //qDebug() << "success";
@@ -171,7 +167,7 @@ public:
         return dbr;
     }
 
-    FileOperator * getDirectReader(){
+    FileOperator * get_file_operator(){
         return file_operator;
     }
 
