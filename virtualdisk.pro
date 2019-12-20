@@ -38,8 +38,8 @@ HEADERS += \
     fat32_file_reader.h \
     dbr_operator.h \
     file_creator.h \
-    file_extracter.h \
     file_item.h \
+    timer.h \
     tree.h
 
 FORMS += \

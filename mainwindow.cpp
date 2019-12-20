@@ -10,7 +10,7 @@
 #include <queue>
 #include <QMessageBox>
 #include <QByteArray>
-#include <file_extracter.h>
+#include <timer.h>
 #include <file_creator.h>
 #include <QInputDialog>
 
@@ -66,6 +66,12 @@ void MainWindow::set_tree(Tree::Node * root, FileItem * item){
         item->appendRow(new_item);
         if (is_file(it->file)){
             item->setChild(i, 1, new QStandardItem(to_preferred_size(it->file.size)));
+            item->setChild(i, 2, new QStandardItem(FileUtil::getTime(it->file.create_date,
+                                                                     it->file.create_time,
+                                                                     it->file.create_mms)));
+            item->setChild(i, 3, new QStandardItem(FileUtil::getTime(it->file.modified_date,
+                                                                     it->file.modified_time,
+                                                                     0)));
         }
         set_tree(it, new_item);
     }
@@ -110,8 +116,10 @@ void MainWindow::on_openFile_triggered()
 }
 
 void MainWindow::reset_tree_item_width(){
-    ui->treeView->setColumnWidth(0, ui->treeView->width() / 2);
-    ui->treeView->setColumnWidth(1, ui->treeView->width() / 2);
+    ui->treeView->setColumnWidth(0, ui->treeView->width() / 4);
+    ui->treeView->setColumnWidth(1, ui->treeView->width() / 4);
+    ui->treeView->setColumnWidth(2, ui->treeView->width() / 4);
+    ui->treeView->setColumnWidth(3, ui->treeView->width() / 4);
 }
 
 
@@ -120,7 +128,8 @@ void MainWindow::fflush(){
     tree = new Tree(dbr_operator);
     model->clear();
 
-    model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("文件名")<<QStringLiteral("大小"));
+    model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("文件名")<<QStringLiteral("文件大小")
+                                     <<QStringLiteral("创建时间")<<QStringLiteral("最后修改时间"));
 
     reset_tree_item_width();
     selected_index = model->index(-1, 1);
@@ -131,8 +140,62 @@ void MainWindow::fflush(){
         model->appendRow(item);
         if (is_file(it->file)){
             model->setItem(model->rowCount() - 1, 1, new QStandardItem(to_preferred_size(it->file.size)));
+            model->setItem(model->rowCount() - 1, 2, new QStandardItem(FileUtil::getTime(it->file.create_date,
+                                                                                         it->file.create_time,
+                                                                                         it->file.create_mms)));
+            model->setItem(model->rowCount() - 1, 3, new QStandardItem(FileUtil::getTime(it->file.modified_date,
+                                                                                         it->file.modified_time,
+                                                                                         0)));
         }
         set_tree(it, item);
+    }
+}
+
+void MainWindow::extract_file(QString destFile, Tree::Node * node, DBROperator * reader){
+    FAT32_file fileinfo = node->file;
+    if (is_file(node->file)){
+        QFile * f = new QFile(destFile);
+        if (!f->open(QIODevice::ReadWrite)){
+            delete f;
+            QMessageBox::warning(nullptr, "写入失败！", "写入文件" + destFile + "失败！");
+            return;
+        }
+        DBR dbr_info = reader->get_dbr();
+
+        char * buffer = new char[dbr_info.cluster_size * dbr_info.section_size];
+        while (fileinfo.cluster != INVALID_FILE_CLUSTER){
+            unsigned begin = (dbr_info.cluster_size * (fileinfo.cluster - dbr_info.root_cluster)
+            + dbr_info.reserved_section_count + dbr_info.table_count * dbr_info.table_section_count) * dbr_info.section_size;
+            unsigned size = dbr_info.cluster_size * dbr_info.section_size >
+                    fileinfo.size ? fileinfo.size : dbr_info.cluster_size * dbr_info.section_size;
+            reader->get_file_operator()->read_blocks(begin, size, buffer);
+            f->write(buffer, size);
+
+            fileinfo.size -= size;
+            if (fileinfo.size <= 0){
+                break;
+            }
+            fileinfo.cluster = reader->get_next_cluster(fileinfo.cluster);
+        }
+        delete []buffer;
+        f->close();
+        delete f;
+    }
+    else if (is_folder(node->file)){
+        QDir * d = new QDir();
+        if (!d->exists(destFile)){
+            bool ok = d->mkdir(destFile);
+            delete d;
+            if(!ok){
+                QMessageBox::warning(nullptr, "创建文件夹", "文件夹" + destFile + "创建失败！");
+                return;
+            }
+        }
+        for (Tree::Node * child: node->children){
+            QString qs = child->file.long_filename;
+            QString path = QDir(destFile).filePath(qs);
+            extract_file(path, child, reader);
+        }
     }
 }
 
@@ -147,7 +210,7 @@ void MainWindow::on_extractButton_clicked()
         QString filename = QFileDialog::getSaveFileName(this,
             "请选择要保存的路径", defaultName, "所有文件(*)");
         if (filename.length() > 0){
-            FileExtracter::extract_file(filename, selected_item->get_node(), dbr_operator);
+            extract_file(filename, selected_item->get_node(), dbr_operator);
             QMessageBox::information(nullptr, "提取", "提取完毕！");
         }
     }

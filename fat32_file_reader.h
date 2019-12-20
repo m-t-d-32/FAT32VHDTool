@@ -32,11 +32,15 @@ public:
         file_sectors["file name"] = std::pair<int, int>(0x00, 8);
         file_sectors["extra name"] = std::pair<int, int>(0x08, 3);
         file_sectors["file type"] = std::pair<int, int>(0x0b, 1);
-        file_sectors["create time"] = std::pair<int, int>(0x10, 2);
-        file_sectors["last read time"] = std::pair<int, int>(0x12, 2);
         file_sectors["high cluster"] = std::pair<int, int>(0x14, 2);
         file_sectors["low cluster"] = std::pair<int, int>(0x1a, 2);
         file_sectors["file size"] = std::pair<int, int>(0x1c, 4);
+
+        file_sectors["create date"] = std::pair<int, int>(0x10, 2);
+        file_sectors["create time"] = std::pair<int, int>(0x0e, 2);
+        file_sectors["create mms"] = std::pair<int, int>(0x0d, 1);
+        file_sectors["modified date"] = std::pair<int, int>(0x18, 2);
+        file_sectors["modified time"] = std::pair<int, int>(0x16, 2);
 
         this->file_operator = direct_reader;
         this->dbr_info = dbr_info;
@@ -78,9 +82,13 @@ public:
                     result.extra_name[i] = 0;
                 }
 
-                result.file_type = file_operator->read_bytes(file_sectors["file type"].first + begin, file_sectors["file type"].second);
+                result.create_date = file_operator->read_bytes(file_sectors["create date"].first + begin, file_sectors["create date"].second);
                 result.create_time = file_operator->read_bytes(file_sectors["create time"].first + begin, file_sectors["create time"].second);
-                result.last_read_time = file_operator->read_bytes(file_sectors["last read time"].first + begin, file_sectors["last read time"].second);
+                result.create_mms = file_operator->read_bytes(file_sectors["create mms"].first + begin, file_sectors["create mms"].second);
+                result.modified_date = file_operator->read_bytes(file_sectors["modified date"].first + begin, file_sectors["modified date"].second);
+                result.modified_time = file_operator->read_bytes(file_sectors["modified time"].first + begin, file_sectors["modified time"].second);
+
+                result.file_type = file_operator->read_bytes(file_sectors["file type"].first + begin, file_sectors["file type"].second);
                 result.size = file_operator->read_bytes(file_sectors["file size"].first + begin, file_sectors["file size"].second);
                 result.cluster = 0;
                 result.cluster = file_operator->read_bytes(file_sectors["high cluster"].first + begin, file_sectors["high cluster"].second);

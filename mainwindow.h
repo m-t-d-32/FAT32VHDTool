@@ -27,24 +27,17 @@ private slots:
 
     void on_openFile_triggered();
 
-    void set_tree(Tree::Node * root, FileItem * item);
-
     void on_extractButton_clicked();
 
     void on_treeView_clicked(const QModelIndex &index);
 
     void on_deleteButton_clicked();
 
-    void reset_tree_item_width();
-
-    void fflush();
-
     void on_help_triggered();
 
     void on_addFileButton_clicked();
 
     void on_addFolderButton_clicked();
-
 protected:
 
     virtual void resizeEvent(QResizeEvent * event) override;
@@ -57,6 +50,14 @@ private:
     DBROperator * dbr_operator;
     Tree * tree;
     QModelIndex selected_index;
+
+    void extract_file(QString destFile, Tree::Node * node, DBROperator * reader);
+
+    void set_tree(Tree::Node * root, FileItem * item);
+
+    void reset_tree_item_width();
+
+    void fflush();
 
 };
 

@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <cmath>
 #include <algorithm>
+#include <timer.h>
 
 #ifndef TREE_H
 #define TREE_H
@@ -57,7 +58,7 @@ public:
     Tree(DBROperator * dbrReader){
         this->dbr_operator = dbrReader;
         DBR dbr_info = dbrReader->get_dbr();
-        FAT32_file DIRECT_ROOT_FILE = { "/", "", FOLDER_TYPE, 0, 0, dbr_info.root_cluster, 0, "" };
+        FAT32_file DIRECT_ROOT_FILE(FOLDER_TYPE, dbr_info.root_cluster, 1, "");
         this->fat32_file_reader = new FAT32FileReader(dbrReader->get_file_operator(), dbr_info);
         root = create_tree(DIRECT_ROOT_FILE);
         root->parent = nullptr;
@@ -300,6 +301,11 @@ public:
         /* 短目录项 */
         {
             std::vector<unsigned char> item;
+            unsigned create_date, create_time, create_mm10s;
+            unsigned modified_date, modified_time, modified_mm10s;
+            FileUtil::setNowTime(create_date, create_time, create_mm10s);
+            FileUtil::setNowTime(modified_date, modified_time, modified_mm10s);
+
             item.reserve(EVERY_ITEM_LENGTH);
             std::string short_filename = get_short_filename(filename, fat32_file_reader->get_file_sectors()["file name"].second);
             for (unsigned i = 0; i < short_filename.size(); ++i){
@@ -312,14 +318,23 @@ public:
                 item.push_back((unsigned char)(short_extraname.at(i)));
             }
             item.push_back(file_type);
-            for (unsigned i = 0xc; i < 0x14; ++i){
-                item.push_back(0);
-            }
+            item.push_back(0);  /*0c*/
+            item.push_back((unsigned char)(create_mm10s & 0xff));   /*0d*/
+            item.push_back((unsigned char)(create_time >> 8));   /*0e*/
+            item.push_back((unsigned char)(create_time & 0xff));   /*0f*/
+            item.push_back((unsigned char)(create_date >> 8));   /*10*/
+            item.push_back((unsigned char)(create_date & 0xff));   /*11*/
+            item.push_back((unsigned char)(create_date >> 8));   /*12*/
+            item.push_back((unsigned char)(create_date & 0xff));   /*13*/
+
             item.push_back((unsigned char)(occupy_cluster_begin >> 16 & 0xff));
             item.push_back((unsigned char)(occupy_cluster_begin >> 24 & 0xff));
-            for (unsigned i = 0x16; i < 0x1a; ++i){
-                item.push_back(0);
-            }
+
+            item.push_back((unsigned char)(modified_time >> 8));   /*16*/
+            item.push_back((unsigned char)(modified_time & 0xff));   /*17*/
+            item.push_back((unsigned char)(modified_date >> 8));   /*18*/
+            item.push_back((unsigned char)(modified_date & 0xff));   /*19*/
+
             item.push_back((unsigned char)(occupy_cluster_begin & 0xff));
             item.push_back((unsigned char)(occupy_cluster_begin >> 8 & 0xff));
 
