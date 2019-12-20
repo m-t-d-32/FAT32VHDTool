@@ -181,7 +181,7 @@ public:
         if (!cluster_count)
             cluster_count = 1; /* 修复空文件bug */
 
-        unsigned last_free_cluster = free_cluster_begin;
+        unsigned last_free_cluster = 0;
         for (unsigned i = 0; i < cluster_count; ++i){
             bool find = false;
             while (free_cluster_begin < dbr.cluster_count){
@@ -196,7 +196,9 @@ public:
                 throw INSUFFICIENT_SPACE{};
             }
             else {
-                dbr_operator->get_file_operator()->write_bytes(fat_begin + last_free_cluster * FAT_ITEM_SIZE, FAT_ITEM_SIZE, free_cluster_begin);
+                if (last_free_cluster){
+                    dbr_operator->get_file_operator()->write_bytes(fat_begin + last_free_cluster * FAT_ITEM_SIZE, FAT_ITEM_SIZE, free_cluster_begin);
+                }
                 last_free_cluster = free_cluster_begin;
                 occupy_clusters.push_back(free_cluster_begin++);
             }
@@ -247,7 +249,7 @@ public:
         }
         std::u16string fileUTF16name = filename.toStdU16String();
         fileUTF16name.append(1, (unsigned short)0);
-        unsigned long_count = fileUTF16name.size() * sizeof(unsigned short) / item_name_size + (!!(fileUTF16name.size() % item_name_size));    /*ceil*/
+        unsigned long_count = fileUTF16name.size() * sizeof(unsigned short) / item_name_size + (!!(fileUTF16name.size() * sizeof(unsigned short) % item_name_size));    /*ceil*/
         std::vector<std::vector<unsigned char> > allitems;
         /* 长目录项 */
         for (unsigned i = 0; i < long_count; ++i){
@@ -303,8 +305,8 @@ public:
             std::vector<unsigned char> item;
             unsigned create_date, create_time, create_mm10s;
             unsigned modified_date, modified_time, modified_mm10s;
-            FileUtil::setNowTime(create_date, create_time, create_mm10s);
-            FileUtil::setNowTime(modified_date, modified_time, modified_mm10s);
+            Timer::setNowTime(create_date, create_time, create_mm10s);
+            Timer::setNowTime(modified_date, modified_time, modified_mm10s);
 
             item.reserve(EVERY_ITEM_LENGTH);
             std::string short_filename = get_short_filename(filename, fat32_file_reader->get_file_sectors()["file name"].second);
@@ -317,23 +319,23 @@ public:
             for (unsigned i = 0; i < short_extraname.size(); ++i){
                 item.push_back((unsigned char)(short_extraname.at(i)));
             }
-            item.push_back(file_type);
+            item.push_back(file_type & 0xff);
             item.push_back(0);  /*0c*/
-            item.push_back((unsigned char)(create_mm10s & 0xff));   /*0d*/
-            item.push_back((unsigned char)(create_time >> 8));   /*0e*/
-            item.push_back((unsigned char)(create_time & 0xff));   /*0f*/
-            item.push_back((unsigned char)(create_date >> 8));   /*10*/
-            item.push_back((unsigned char)(create_date & 0xff));   /*11*/
-            item.push_back((unsigned char)(create_date >> 8));   /*12*/
-            item.push_back((unsigned char)(create_date & 0xff));   /*13*/
+            item.push_back((unsigned char)(create_mm10s & 0xff));   /*0d*/            
+            item.push_back((unsigned char)(create_time & 0xff));   /*0e*/
+            item.push_back((unsigned char)(create_time >> 8));   /*0f*/
+            item.push_back((unsigned char)(create_date & 0xff));   /*10*/
+            item.push_back((unsigned char)(create_date >> 8));   /*11*/
+            item.push_back((unsigned char)(create_date & 0xff));   /*12*/
+            item.push_back((unsigned char)(create_date >> 8));   /*13*/
 
             item.push_back((unsigned char)(occupy_cluster_begin >> 16 & 0xff));
             item.push_back((unsigned char)(occupy_cluster_begin >> 24 & 0xff));
 
-            item.push_back((unsigned char)(modified_time >> 8));   /*16*/
-            item.push_back((unsigned char)(modified_time & 0xff));   /*17*/
-            item.push_back((unsigned char)(modified_date >> 8));   /*18*/
-            item.push_back((unsigned char)(modified_date & 0xff));   /*19*/
+            item.push_back((unsigned char)(modified_time & 0xff));   /*16*/
+            item.push_back((unsigned char)(modified_time >> 8));   /*17*/
+            item.push_back((unsigned char)(modified_date & 0xff));   /*18*/
+            item.push_back((unsigned char)(modified_date >> 8));   /*19*/
 
             item.push_back((unsigned char)(occupy_cluster_begin & 0xff));
             item.push_back((unsigned char)(occupy_cluster_begin >> 8 & 0xff));
@@ -350,7 +352,7 @@ public:
         std::vector<unsigned> parent_occupy_clusters;
         unsigned current_cluster = parent->file.cluster;
         while (!is_invalid_cluster(current_cluster)){
-            parent_occupy_clusters.push_back(parent->file.cluster);
+            parent_occupy_clusters.push_back(current_cluster);
             current_cluster = dbr_operator->get_next_cluster(current_cluster);
         }
 
@@ -387,6 +389,13 @@ public:
                     dbr_operator->get_file_operator()->write_bytes(fat_begin + last_free_cluster * FAT_ITEM_SIZE, FAT_ITEM_SIZE, free_cluster_begin);
                     dbr_operator->get_file_operator()->write_bytes(fat_begin + free_cluster_begin * FAT_ITEM_SIZE, FAT_ITEM_SIZE, INVALID_FILE_CLUSTER);
                     parent_occupy_clusters.push_back(free_cluster_begin);
+                    /* 这里需要把申请到的簇填充0 */
+                    unsigned dest_begin = cluster_begin + free_cluster_begin * size_every;
+                    char * buffer = new char[size_every];
+                    memset(buffer, 0, size_every);
+                    dbr_operator->get_file_operator()->write_blocks(dest_begin, size_every, buffer);
+                    delete []buffer;
+
                     break;
                 }
                 ++free_cluster_begin;
@@ -398,9 +407,14 @@ public:
             sub_1(clusters_index, cluster_item_index, dbr);
         }
         /* 调整到开始插入的地址 */
-        for (unsigned i = 0; i < can_insert_count - 1; ++i){
-            /* 减一的操作只需要做n-1次 */
-            sub_1(clusters_index, cluster_item_index, dbr);
+        if (can_insert_count <= 0){
+            add_1(clusters_index, cluster_item_index, parent_occupy_clusters, dbr);
+        }
+        else {
+            for (unsigned i = 0; i != can_insert_count - 1; ++i){
+                /* 减一的操作只需要做n-1次 */
+                sub_1(clusters_index, cluster_item_index, dbr);
+            }
         }
         /* 写入 */
         for (unsigned i = 0; i < allitems.size(); ++i){

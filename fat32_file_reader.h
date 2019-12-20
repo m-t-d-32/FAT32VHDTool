@@ -46,7 +46,7 @@ public:
         this->dbr_info = dbr_info;
     }
 
-    auto get_file_sectors(){
+    std::map<std::string, std::pair<unsigned, unsigned> > get_file_sectors(){
         return file_sectors;
     }
 

@@ -66,10 +66,10 @@ void MainWindow::set_tree(Tree::Node * root, FileItem * item){
         item->appendRow(new_item);
         if (is_file(it->file)){
             item->setChild(i, 1, new QStandardItem(to_preferred_size(it->file.size)));
-            item->setChild(i, 2, new QStandardItem(FileUtil::getTime(it->file.create_date,
+            item->setChild(i, 2, new QStandardItem(Timer::getTime(it->file.create_date,
                                                                      it->file.create_time,
                                                                      it->file.create_mms)));
-            item->setChild(i, 3, new QStandardItem(FileUtil::getTime(it->file.modified_date,
+            item->setChild(i, 3, new QStandardItem(Timer::getTime(it->file.modified_date,
                                                                      it->file.modified_time,
                                                                      0)));
         }
@@ -140,10 +140,10 @@ void MainWindow::fflush(){
         model->appendRow(item);
         if (is_file(it->file)){
             model->setItem(model->rowCount() - 1, 1, new QStandardItem(to_preferred_size(it->file.size)));
-            model->setItem(model->rowCount() - 1, 2, new QStandardItem(FileUtil::getTime(it->file.create_date,
+            model->setItem(model->rowCount() - 1, 2, new QStandardItem(Timer::getTime(it->file.create_date,
                                                                                          it->file.create_time,
                                                                                          it->file.create_mms)));
-            model->setItem(model->rowCount() - 1, 3, new QStandardItem(FileUtil::getTime(it->file.modified_date,
+            model->setItem(model->rowCount() - 1, 3, new QStandardItem(Timer::getTime(it->file.modified_date,
                                                                                          it->file.modified_time,
                                                                                          0)));
         }
@@ -218,7 +218,7 @@ void MainWindow::on_extractButton_clicked()
 
 void MainWindow::on_treeView_clicked(const QModelIndex &index)
 {
-    selected_index = index;
+    selected_index = index.sibling(index.row(), 0);
 }
 
 void MainWindow::on_deleteButton_clicked()

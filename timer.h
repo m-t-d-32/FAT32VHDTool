@@ -4,7 +4,7 @@
 #include <defines.h>
 #include <QDateTime>
 
-class FileUtil{
+class Timer{
 public:
 
     static QString getTime(unsigned date, unsigned time, unsigned mm10s){
@@ -15,7 +15,7 @@ public:
         unsigned minute = time >> 5 & 0x3f;
         unsigned mms = mm10s * 10;
         unsigned second = (time & 0x1f) * 2;
-        second += mms % 1000;
+        second += mms / 1000;
 
         return QString::number(year) + "年" + QString::number(month)
                     + "月" + QString::number(day) + "日 "
@@ -27,7 +27,7 @@ public:
     static void setNowTime(unsigned & date, unsigned & time, unsigned & mm10s){
         QDateTime current_date_time = QDateTime::currentDateTime();
         date = 0;
-        date |= current_date_time.date().year();
+        date |= current_date_time.date().year() - 1980;
         date <<= 4;
         date |= current_date_time.date().month();
         date <<= 5;
@@ -39,7 +39,6 @@ public:
         time <<= 5;
         time |= current_date_time.time().second() / 2;
         mm10s = 0;
-        mm10s += current_date_time.time().second() % 2 * 1000 / 10;
         mm10s += current_date_time.time().msec() / 10;
     }
 
