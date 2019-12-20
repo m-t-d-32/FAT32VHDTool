@@ -17,6 +17,7 @@
 #define EVERY_ITEM_LENGTH 0x20
 #define DEFAULT_TABLE_COUNT 2
 #define DEFAULT_ROOT_CLUSTER 2
+#define FAT_ITEM_SIZE 4
 
 #define FREE_FILE_CLUSTER 0x00000000
 #define FIRST_CLUSTER 0x0FFFFFF8
@@ -24,7 +25,7 @@
 #define LAST_LONG 0x40
 
 #define LONG_FILE_TYPE 0xf
-#define ORDINARY_FILE 0x0
+#define ORDINARY_FILE_TYPE 0x0
 #define FOLDER_TYPE 0x10
 #define DELETED_TYPE 0xe5
 #define VOLUME_TYPE 0x8
@@ -47,7 +48,7 @@ inline bool is_long(unsigned char t){return t == LONG_FILE_TYPE;}
 inline bool is_invalid_cluster(unsigned t){return t >= INVALID_FILE_CLUSTER;}
 inline bool is_last_long(unsigned t){return t & LAST_LONG;}
 inline bool is_can_insert(unsigned char t){return is_deleted(t) || !t;}
-inline QString to_preferred_size(long size){
+inline QString to_preferred_size(unsigned size){
     float b = size;
     QString result = "B";
     if (b >= EVERY_KB){

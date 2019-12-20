@@ -9,7 +9,6 @@
 
 #ifndef FAT32_H
 #define FAT32_H
-#define FAT_ITEM_SIZE 4
 
 typedef struct {
 
@@ -49,9 +48,9 @@ public:
     }
 
     void init_cluster_count(){
-        long file_size = file_operator->get_file_size();
+        unsigned file_size = file_operator->get_file_size();
         /* 真正开始存放簇的位置（2） */
-        long cluster_begin = (dbr.table_count * dbr.table_section_count + dbr.reserved_section_count) * dbr.section_size;
+        unsigned cluster_begin = (dbr.table_count * dbr.table_section_count + dbr.reserved_section_count) * dbr.section_size;
         /* 第0个簇的位置 */
         cluster_begin -= dbr.root_cluster * dbr.cluster_size * dbr.section_size;
         dbr.cluster_count = (file_size - cluster_begin) / (dbr.cluster_size * dbr.section_size);
@@ -74,9 +73,9 @@ public:
         init_cluster_count();
     }
 
-    void init_dbr(int section_size,
-                  int cluster_size,
-                  long all_size,
+    void init_dbr(unsigned section_size,
+                  unsigned cluster_size,
+                  unsigned all_size,
                   FileOperator * direct_writer){
         all_size = all_size * EVERY_MB * EVERY_KB;
         this->file_operator = direct_writer;
@@ -84,26 +83,29 @@ public:
         dbr.cluster_size = cluster_size;
         dbr.section_size = section_size;
         dbr.table_count = DEFAULT_TABLE_COUNT;
-        dbr.reserved_section_count = 1;
+
+        dbr.root_cluster = DEFAULT_ROOT_CLUSTER;
+        /* 浪费一点空间，保证后面的计算不会溢出 */
+        dbr.reserved_section_count = dbr.cluster_size * dbr.root_cluster;
+
         /*
          * 解方程
          * reserved_section_count * section_size + 2 * L * section_size + (L * section_size / 4 - root_cluster) * cluster_size * section_size <= all_size
          * L是FAT所占section数，L取能够使得上式成立的最大值
          */
-        dbr.root_cluster = DEFAULT_ROOT_CLUSTER;
-        long L = (all_size - section_size * dbr.reserved_section_count + dbr.root_cluster * cluster_size * section_size)
+        unsigned L = (all_size - section_size * dbr.reserved_section_count + dbr.root_cluster * cluster_size * section_size)
                 / (cluster_size * section_size * section_size / FAT_ITEM_SIZE + dbr.table_count * section_size);
         /*
          * 剩下的空间还可以放若干个簇，这时FAT会增加且只会增加2个扇区
          * cluster_remain = (remain - 2 * section_size) / cluster_size / section_size
          */
-        long remain = all_size - dbr.reserved_section_count * section_size - DEFAULT_TABLE_COUNT * section_size * L;
+        unsigned remain = all_size - dbr.reserved_section_count * section_size - DEFAULT_TABLE_COUNT * section_size * L;
         remain -= (L * section_size / FAT_ITEM_SIZE - dbr.root_cluster) * section_size * cluster_size;
         remain -= dbr.table_count * section_size;
 
         dbr.cluster_count = section_size * L / FAT_ITEM_SIZE;
         if (remain > 0){
-            long remainCluster = remain / section_size / cluster_size;
+            unsigned remainCluster = remain / section_size / cluster_size;
             dbr.cluster_count += remainCluster;
             dbr.table_section_count = L + 1;
         }
@@ -127,23 +129,26 @@ public:
                     dbr_sectors["fat32 verification number"].first, dbr_sectors["fat32 verification number"].second, verify_num.data());
 
         /* 初始化FAT表 */
-        long fat_begin = dbr.reserved_section_count * section_size;
+        unsigned fat_begin = dbr.reserved_section_count * section_size;
         char * buffer = new char[section_size];
         memset(buffer, 0, section_size);
-        for (int i = 0; i < dbr.table_section_count * dbr.table_count; ++i){
+        for (unsigned i = 0; i < dbr.table_section_count * dbr.table_count; ++i){
             file_operator->write_blocks(fat_begin + i * section_size, section_size, buffer);
         }
-        for (int i = 0; i < dbr.table_count; ++i){
+        for (unsigned i = 0; i < dbr.table_count; ++i){
             file_operator->write_bytes(fat_begin + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), FIRST_CLUSTER);
-            file_operator->write_bytes(fat_begin + sizeof(unsigned) + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), SECOND_CLUSTER);
-            //file_operator->write_bytes(fat_begin + sizeof(unsigned))
-        }
-        /* 初始化根目录 */
-        for (int i = 0; i < dbr.table_count; ++i){
-            file_operator->write_bytes(fat_begin + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), FIRST_CLUSTER);
-            file_operator->write_bytes(fat_begin + sizeof(unsigned) + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), SECOND_CLUSTER);
+            file_operator->write_bytes(fat_begin + FAT_ITEM_SIZE + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), SECOND_CLUSTER);
+            file_operator->write_bytes(fat_begin + FAT_ITEM_SIZE * dbr.root_cluster + i * dbr.table_section_count * dbr.section_size, sizeof(unsigned), INVALID_FILE_CLUSTER);
         }
         delete []buffer;
+
+        /* 清除根簇 */
+        unsigned cluster_begin = fat_begin + dbr.table_count * dbr.table_section_count * dbr.section_size;
+        buffer = new char[dbr.cluster_size * dbr.section_size];
+        memset(buffer, 0, dbr.cluster_size * dbr.section_size);
+        file_operator->write_blocks(cluster_begin, dbr.root_cluster * dbr.section_size, buffer);
+        delete []buffer;
+
         //qDebug() << "success";
     }
 

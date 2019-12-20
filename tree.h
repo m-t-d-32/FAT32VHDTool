@@ -33,7 +33,7 @@ private:
 
     FAT32FileReader * fat32_file_reader;
 
-    int free_cluster_begin;
+    unsigned free_cluster_begin;
 
     void rr_print_tree(Node * root, unsigned depth){
         FAT32_file current_file = root->file;
@@ -57,7 +57,7 @@ public:
     Tree(DBROperator * dbrReader){
         this->dbr_operator = dbrReader;
         DBR dbr_info = dbrReader->get_dbr();
-        FAT32_file DIRECT_ROOT_FILE = { "/", "", 0x10, 0, 0, dbr_info.root_cluster, 0, "" };
+        FAT32_file DIRECT_ROOT_FILE = { "/", "", FOLDER_TYPE, 0, 0, dbr_info.root_cluster, 0, "" };
         this->fat32_file_reader = new FAT32FileReader(dbrReader->get_file_operator(), dbr_info);
         root = create_tree(DIRECT_ROOT_FILE);
         root->parent = nullptr;
@@ -90,23 +90,23 @@ public:
         /* 性能 */
         DBR dbr = dbr_operator->get_dbr();
         unsigned fat_begin = dbr.reserved_section_count * dbr.section_size;
-        long cluster_count = dbr.cluster_count;
-        for (long i = 0; i < cluster_count; ++i){
+        unsigned cluster_count = dbr.cluster_count;
+        for (unsigned i = 0; i < cluster_count; ++i){
             unsigned read_fat = dbr_operator->get_file_operator()->read_bytes(fat_begin + i * FAT_ITEM_SIZE, FAT_ITEM_SIZE);
             if (!read_fat){
                 free_cluster_begin = i;
                 return;
             }
         }
-        free_cluster_begin = -1;
+        free_cluster_begin = 0;
     }
 
     void revert_FAT(){
         /* 如果添加过程出现问题，从FAT2恢复到FAT1 */
         DBR dbr = dbr_operator->get_dbr();
-        long size = dbr.table_section_count * dbr.section_size;
-        long fat1_begin = dbr.reserved_section_count * dbr.section_size;
-        long fat2_begin = fat1_begin + size;
+        unsigned size = dbr.table_section_count * dbr.section_size;
+        unsigned fat1_begin = dbr.reserved_section_count * dbr.section_size;
+        unsigned fat2_begin = fat1_begin + size;
 
         char * buffer = new char[size];
         dbr_operator->get_file_operator()->read_blocks(fat2_begin, size, buffer);
@@ -116,9 +116,9 @@ public:
     void commit_FAT(){
         /* 如果没有问题，从FAT1替换到FAT2 */
         DBR dbr = dbr_operator->get_dbr();
-        long size = dbr.table_section_count * dbr.section_size;
-        long fat1_begin = dbr.reserved_section_count * dbr.section_size;
-        long fat2_begin = fat1_begin + size;
+        unsigned size = dbr.table_section_count * dbr.section_size;
+        unsigned fat1_begin = dbr.reserved_section_count * dbr.section_size;
+        unsigned fat2_begin = fat1_begin + size;
 
         char * buffer = new char[size];
         dbr_operator->get_file_operator()->read_blocks(fat1_begin, size, buffer);
@@ -126,27 +126,62 @@ public:
         delete []buffer;
     }
 
+    void add_folder(Node * parent, QString foldername){
+        /* 只是添加一个空文件夹，父文件夹是parent */
+
+        DBR dbr = fat32_file_reader->get_dbr();
+        unsigned fat_begin = dbr.reserved_section_count * dbr.section_size;
+        begin_find_free_cluster();
+        if (!free_cluster_begin){
+            throw INSUFFICIENT_SPACE{};
+        }
+        else {
+            dbr_operator->get_file_operator()->write_bytes(fat_begin + free_cluster_begin * FAT_ITEM_SIZE, FAT_ITEM_SIZE, INVALID_FILE_CLUSTER);
+        }
+
+        unsigned cluster_begin = fat_begin + dbr.table_count * dbr.table_section_count * dbr.section_size;
+        cluster_begin -= dbr.root_cluster * dbr.cluster_size * dbr.section_size;
+        unsigned size_every = dbr.cluster_size * dbr.section_size;
+        unsigned cluster = free_cluster_begin;
+        unsigned dest_begin = cluster_begin + cluster * size_every;
+
+        /* 将.和..写入簇 */
+        /* do nothing */
+        /* 这里不提供实现，因为FAT32中不一定存在.和.. */
+
+        /* 清空簇中的内容 */
+        char * buffer = new char[size_every];
+        memset(buffer, 0, size_every);
+        dbr_operator->get_file_operator()->write_blocks(dest_begin, size_every, buffer);
+        delete []buffer;
+
+        add_to_parent(parent, foldername, cluster, 0, FOLDER_TYPE);
+        end_find_free_cluster();
+    }
+
     void add_file(Node * parent, QString filepath){
         QString filename = get_filename_without_path(filepath);
         /* 只是添加普通文件，父目录是node */
-        if (free_cluster_begin == -1){
+        if (!free_cluster_begin){
             throw INSUFFICIENT_SPACE{};
         }
 
         /* 获取需要占几个簇，并写入FAT表 */
-        std::vector<long> occupy_clusters;
+        std::vector<unsigned> occupy_clusters;
         FileOperator src_operator(filepath);
-        long size = src_operator.get_file_size();
+        unsigned size = src_operator.get_file_size();
         DBR dbr = dbr_operator->get_dbr();
         unsigned fat_begin = dbr.reserved_section_count * dbr.section_size;
-        long cluster_begin = fat_begin + dbr.table_count * dbr.table_section_count * dbr.section_size;
+        unsigned cluster_begin = fat_begin + dbr.table_count * dbr.table_section_count * dbr.section_size;
         cluster_begin -= dbr.root_cluster * dbr.cluster_size * dbr.section_size;
-        long size_every = dbr.cluster_size * dbr.section_size;
+        unsigned size_every = dbr.cluster_size * dbr.section_size;
 
-        long cluster_count = size / size_every + !!(size % size_every);
+        unsigned cluster_count = size / size_every + !!(size % size_every);
+        if (!cluster_count)
+            cluster_count = 1; /* 修复空文件bug */
 
-        long last_free_cluster = free_cluster_begin;
-        for (long i = 0; i < cluster_count; ++i){
+        unsigned last_free_cluster = free_cluster_begin;
+        for (unsigned i = 0; i < cluster_count; ++i){
             bool find = false;
             while (free_cluster_begin < dbr.cluster_count){
                 unsigned read_fat = dbr_operator->get_file_operator()->read_bytes(fat_begin + free_cluster_begin * FAT_ITEM_SIZE, FAT_ITEM_SIZE);
@@ -171,23 +206,39 @@ public:
         char * buffer = new char[size_every];
         for (unsigned i = 0; i < occupy_clusters.size(); ++i){
             unsigned cluster = occupy_clusters[i];
-            long dest_begin = cluster_begin + cluster * size_every;
-            long src_begin = i * size_every;
+            unsigned dest_begin = cluster_begin + cluster * size_every;
+            unsigned src_begin = i * size_every;
 
             if (i != occupy_clusters.size() - 1){
                 src_operator.read_blocks(src_begin, size_every, buffer);
                 dbr_operator->get_file_operator()->write_blocks(dest_begin, size_every, buffer);
             }
             else {
-                long remains = size - cluster_count * size_every;
+                unsigned remains = size - cluster_count * size_every;
+                memset(buffer, 0, size_every);
                 src_operator.read_blocks(src_begin, remains, buffer);
                 dbr_operator->get_file_operator()->write_blocks(dest_begin, remains, buffer);
             }
         }
         delete []buffer;
 
+        add_to_parent(parent, filename, occupy_clusters[0], size, ORDINARY_FILE_TYPE);
+    }
+
+    void add_to_parent(Node * parent, QString filename,
+                       unsigned occupy_cluster_begin, unsigned size,
+                       unsigned file_type){
+        if (!parent){
+            return;
+        }
         /* 生成文件各个目录项 */
         /* assert 每个目录项 == 32Byte */
+        DBR dbr = dbr_operator->get_dbr();
+        unsigned fat_begin = dbr.reserved_section_count * dbr.section_size;
+        unsigned cluster_begin = fat_begin + dbr.table_count * dbr.table_section_count * dbr.section_size;
+        cluster_begin -= dbr.root_cluster * dbr.cluster_size * dbr.section_size;
+        unsigned size_every = dbr.cluster_size * dbr.section_size;
+
         unsigned long_begin[] = { 0x1, 0xe, 0x1c }, long_end[] = { 0xb, 0x1a, 0x20 };
         unsigned item_name_size = 0;
         for (unsigned i = 0; i < sizeof(long_begin) / sizeof(long_begin[0]); ++i){
@@ -195,7 +246,7 @@ public:
         }
         std::u16string fileUTF16name = filename.toStdU16String();
         fileUTF16name.append(1, (unsigned short)0);
-        unsigned long_count = fileUTF16name.size() / item_name_size + (!!(fileUTF16name.size() % item_name_size));    /*ceil*/
+        unsigned long_count = fileUTF16name.size() * sizeof(unsigned short) / item_name_size + (!!(fileUTF16name.size() % item_name_size));    /*ceil*/
         std::vector<std::vector<unsigned char> > allitems;
         /* 长目录项 */
         for (unsigned i = 0; i < long_count; ++i){
@@ -208,7 +259,7 @@ public:
             else {
                 item.push_back((unsigned char)(i + 1)); /*从1开始*/
             }
-            for (unsigned j = 0; j < long_end[0] - long_begin[0]; j += 2){
+            for (unsigned j = 0; j < long_end[0] - long_begin[0]; j += sizeof(unsigned short)){
                 /* a >> 1 和 a / 2相同，类似我们可以知道 a & 1 与 a % 2相同 */
                 if ((i * item_name_size + j) >> 1 >= fileUTF16name.size()){
                     item.push_back(LONG_END_TYPE);
@@ -260,17 +311,17 @@ public:
             for (unsigned i = 0; i < short_extraname.size(); ++i){
                 item.push_back((unsigned char)(short_extraname.at(i)));
             }
-            item.push_back(ORDINARY_FILE);
+            item.push_back(file_type);
             for (unsigned i = 0xc; i < 0x14; ++i){
                 item.push_back(0);
             }
-            item.push_back((unsigned char)(occupy_clusters[0] >> 16 & 0xff));
-            item.push_back((unsigned char)(occupy_clusters[0] >> 24 & 0xff));
+            item.push_back((unsigned char)(occupy_cluster_begin >> 16 & 0xff));
+            item.push_back((unsigned char)(occupy_cluster_begin >> 24 & 0xff));
             for (unsigned i = 0x16; i < 0x1a; ++i){
                 item.push_back(0);
             }
-            item.push_back((unsigned char)(occupy_clusters[0] & 0xff));
-            item.push_back((unsigned char)(occupy_clusters[0] >> 8 & 0xff));
+            item.push_back((unsigned char)(occupy_cluster_begin & 0xff));
+            item.push_back((unsigned char)(occupy_cluster_begin >> 8 & 0xff));
 
             item.push_back((unsigned char)(size & 0xff));
             item.push_back((unsigned char)(size >> 8 & 0xff));
@@ -294,7 +345,7 @@ public:
         while (true){
             unsigned begin = cluster_begin + parent_occupy_clusters[clusters_index] * size_every;
             begin += cluster_item_index * EVERY_ITEM_LENGTH;
-            unsigned char test_byte = dbr_operator->get_file_operator()->read_bytes(begin, 1);
+            unsigned char test_byte = (unsigned char)dbr_operator->get_file_operator()->read_bytes(begin, 1);
             if (!is_can_insert(test_byte)){
                 can_insert_count = 0;
             }
@@ -346,7 +397,7 @@ public:
     }
 
     void end_find_free_cluster(){
-        free_cluster_begin = -1;
+        free_cluster_begin = 0;
     }
 
     void print_tree(){
@@ -388,7 +439,7 @@ public:
         /* 删除所有文件 */
         DBR dbr_info = dbr_operator->get_dbr();
         for (auto && cluster_item: cluster_occupied){
-            for (int cluster_item_index = 0;
+            for (unsigned cluster_item_index = 0;
                  cluster_item_index < dbr_info.cluster_size * dbr_info.section_size / EVERY_ITEM_LENGTH;
                  ++cluster_item_index){
                 unsigned begin = (dbr_info.cluster_size * (cluster_item - dbr_info.root_cluster)
@@ -420,7 +471,7 @@ public:
 
     void rr_delete(Node * root){
         if (!root){
-            for (int i = 0; i < root->children.size(); ++i){
+            for (unsigned i = 0; i < root->children.size(); ++i){
                 rr_delete(root->children[i]);
             }
         }

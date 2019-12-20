@@ -93,7 +93,7 @@
           <item>
            <widget class="QPushButton" name="addFolderButton">
             <property name="text">
-             <string>添加文件夹</string>
+             <string>新建文件夹</string>
             </property>
            </widget>
           </item>

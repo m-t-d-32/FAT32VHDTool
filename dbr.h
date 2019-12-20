@@ -1,4 +1,4 @@
-#ifndef DBR_H
+﻿#ifndef DBR_H
 #define DBR_H
 
 typedef struct {
@@ -8,7 +8,7 @@ typedef struct {
     unsigned reserved_section_count; /* 保留扇区数 */
     unsigned cluster_size; /* 每簇扇区数 */
     unsigned root_cluster; /* 根目录簇序号 */
-    long cluster_count; /* 簇个数 */
+    unsigned cluster_count; /* 簇个数 */
 } DBR;
 
 #endif // DBR_H

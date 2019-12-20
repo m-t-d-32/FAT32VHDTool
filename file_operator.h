@@ -28,7 +28,7 @@ public:
     /*
      * 读取begin开始的size个字节（不超过4字节）并返回
      */
-    unsigned read_bytes(long begin, unsigned size){
+    unsigned read_bytes(unsigned begin, unsigned size){
         unsigned result = 0;
         devfile->seek(begin);
         devfile->read((char *)(&result), size);
@@ -37,32 +37,32 @@ public:
     /*
      * 写入begin开始的size个字节（不超过4字节）
      */
-    void write_bytes(long begin, unsigned size, unsigned data){
+    void write_bytes(unsigned begin, unsigned size, unsigned data){
         devfile->seek(begin);
         devfile->write((char *)(&data), size);
     }
     /*
      * 写入若干字节
      */
-    void write_blocks(long begin, unsigned size, const void * buffer){
+    void write_blocks(unsigned begin, unsigned size, const void * buffer){
         devfile->seek(begin);
         devfile->write((char *)buffer, size);
     }
     /*
      * 将若干个字节读入缓存
      */
-    void read_blocks(long begin, unsigned size, void * buffer){
+    void read_blocks(unsigned begin, unsigned size, void * buffer){
         devfile->seek(begin);
         devfile->read((char *)buffer, size);
     }
     /*
      * 获取文件大小
      */
-    long get_file_size(){
+    unsigned get_file_size(){
         return QFileInfo(*devfile).size();
     }
 
-    void append_size(long l){
+    void append_size(unsigned l){
         devfile->seek(l - 1);
         devfile->write("w", 1);
         devfile->seek(0);

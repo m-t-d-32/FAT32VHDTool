@@ -1,24 +1,25 @@
-﻿#include "mainwindow.h"
-#include "ui_mainwindow.h"
+﻿#include <mainwindow.h>
+#include <ui_mainwindow.h>
 #include <QFileDialog>
 #include <QDebug>
-#include "file_operator.h"
-#include "tree.h"
+#include <file_operator.h>
+#include <tree.h>
 #include <QVBoxLayout>
 #include <QTreeView>
 #include <QStandardItemModel>
 #include <queue>
 #include <QMessageBox>
 #include <QByteArray>
-#include "file_extracter.h"
-#include "file_creator.h"
+#include <file_extracter.h>
+#include <file_creator.h>
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    setWindowTitle("虚拟硬盘");
+    setWindowTitle(QString("虚拟硬盘"));
 
     model = new QStandardItemModel(ui->treeView);
     ui->treeView->setModel(model);
@@ -45,11 +46,15 @@ void MainWindow::on_newFile_triggered()
         QString filename = QFileDialog::getSaveFileName(this,
                   "保存虚拟硬盘文件", nullptr, "虚拟硬盘文件(*.c51);;所有文件(*.*)");
         if (filename.length() > 0){
-            direct_operator = new FileOperator(filename);
-            dbr_operator = new DBROperator();
-            dbr_operator->init_dbr(creator->get_section_size(), creator->get_cluster_size(), creator->get_create_size(), direct_operator);
-            QMessageBox::information(nullptr, "成功", "创建文件成功");
-            fflush();
+            try {
+                direct_operator = new FileOperator(filename);
+                dbr_operator = new DBROperator();
+                dbr_operator->init_dbr(creator->get_section_size(), creator->get_cluster_size(), creator->get_create_size(), direct_operator);
+                QMessageBox::information(nullptr, "成功", "创建文件成功");
+                fflush();
+            } catch (...) {
+                QMessageBox::critical(nullptr, "错误", "创建文件失败，请检查权限或硬盘空间！");
+            }
         }
     }
 }
@@ -210,6 +215,37 @@ void MainWindow::on_addFileButton_clicked()
 
 void MainWindow::on_addFolderButton_clicked()
 {
-    QString foldername = QFileDialog::getExistingDirectory(this, "添加文件夹");
-    qDebug() << foldername;
+    if (!tree){
+        QMessageBox::information(nullptr, "无法添加", "没有打开虚拟磁盘文件！");
+    }
+    else {
+        QString foldername = QInputDialog().getText(nullptr, "新建文件夹", "请输入文件夹名称:");
+        if (foldername.size() <= 0){
+            QMessageBox::critical(nullptr, "错误", "文件夹名不能为空！");
+        }
+        else {
+            Tree::Node * node;
+            if (selected_index.row() < 0){
+                node = tree->getRoot();
+            }
+            else {
+                FileItem * selected_item = (FileItem *)model->itemFromIndex(selected_index);
+                node = selected_item->get_node();
+                if (!is_folder(node->file)){
+                    QMessageBox::critical(nullptr, "错误", "只能向文件夹中添加文件夹！");
+                    return;
+                }
+            }
+            tree->revert_FAT(); /* 防止之前的不一致 */
+            try {
+                /* 开始事务操作 */
+                tree->add_folder(node, foldername);
+                tree->commit_FAT();
+            } catch (...) {
+                QMessageBox::critical(nullptr, "错误", "空间不足！");
+                tree->revert_FAT();
+            }
+            fflush();
+        }
+    }
 }
