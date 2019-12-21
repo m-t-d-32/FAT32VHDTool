@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>新建虚拟光驱文件</string>
   </property>
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
@@ -97,9 +97,6 @@
    </property>
    <property name="maximum">
     <number>16</number>
-   </property>
-   <property name="stepType">
-    <enum>QAbstractSpinBox::DefaultStepType</enum>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
@@ -193,14 +190,14 @@
     <rect>
      <x>140</x>
      <y>100</y>
-     <width>31</width>
-     <height>41</height>
+     <width>40</width>
+     <height>40</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <family>Miriam Fixed</family>
-     <pointsize>36</pointsize>
+     <family>Noto Sans CJK SC</family>
+     <pointsize>32</pointsize>
      <weight>50</weight>
      <bold>false</bold>
     </font>

@@ -236,7 +236,7 @@ void MainWindow::on_deleteButton_clicked()
 
 void MainWindow::on_help_triggered()
 {
-    QMessageBox::information(nullptr, "关于产品", "本产品是为了宣传编译器框架LYRON构建的，详细请访问https://github.com/llyronx/LYRON");
+    QMessageBox::information(nullptr, "关于产品", "这是一个简单的虚拟硬盘程序");
 }
 
 void MainWindow::on_addFileButton_clicked()
