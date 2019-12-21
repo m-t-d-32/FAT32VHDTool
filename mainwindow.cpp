@@ -267,10 +267,14 @@ void MainWindow::on_addFileButton_clicked()
                 tree->add_file(node, qs);
             }
             tree->commit_FAT();
-        } catch (...) {
+        } catch (INSUFFICIENT_SPACE) {
             QMessageBox::critical(nullptr, "错误", "空间不足！");
             tree->revert_FAT();
+        } catch (...) {
+            QMessageBox::critical(nullptr, "错误", "请检查是否被其他文件占用！");
+            tree->revert_FAT();
         }
+
         tree->end_find_free_cluster();
         fflush();
     }
