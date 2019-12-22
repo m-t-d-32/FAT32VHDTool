@@ -44,7 +44,7 @@ void MainWindow::on_newFile_triggered()
     creator->exec();
     if (creator->get_accepted()){
         QString filename = QFileDialog::getSaveFileName(this,
-                  "保存虚拟硬盘文件", nullptr, "虚拟硬盘文件(*.c51);;所有文件(*.*)");
+                  "保存虚拟硬盘文件", nullptr, "虚拟硬盘文件(*.c51);;所有文件(*)");
         if (filename.length() > 0){
             try {
                 direct_operator = new FileOperator(filename);
@@ -80,7 +80,7 @@ void MainWindow::set_tree(Tree::Node * root, FileItem * item){
 void MainWindow::on_openFile_triggered()
 {
     QString filename = QFileDialog::getOpenFileName(this,
-            "请选择要打开的文件", nullptr, "虚拟硬盘文件(*.c51);;所有文件(*.*)");
+            "请选择要打开的文件", nullptr, "虚拟硬盘文件(*.c51);;所有文件(*)");
 
     if (filename.length() <= 0){
         return;
@@ -230,6 +230,7 @@ void MainWindow::on_deleteButton_clicked()
         FileItem * selected_item = (FileItem *)model->itemFromIndex(selected_index);
         Tree::Node * node = selected_item->get_node();
         tree->delete_file(node);
+        tree->commit_FAT();
         fflush();
     }    
 }

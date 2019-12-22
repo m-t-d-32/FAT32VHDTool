@@ -55,7 +55,7 @@
     </rect>
    </property>
    <property name="minimum">
-    <number>32</number>
+    <number>256</number>
    </property>
    <property name="maximum">
     <number>1024</number>

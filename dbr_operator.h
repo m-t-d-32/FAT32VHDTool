@@ -184,7 +184,7 @@ public:
 
     void delete_cluster(unsigned cluster){
         unsigned begin = dbr.reserved_section_count * dbr.section_size;
-        file_operator->write_bytes(begin + cluster * FAT_ITEM_SIZE, FAT_ITEM_SIZE, INVALID_FILE_CLUSTER);
+        file_operator->write_bytes(begin + cluster * FAT_ITEM_SIZE, FAT_ITEM_SIZE, 0);
     }
 
 };

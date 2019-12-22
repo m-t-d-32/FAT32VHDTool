@@ -18,7 +18,8 @@ private:
     QFile * devfile;
 public:
     FileOperator(QString filename){
-        devfile = new QFile(filename);
+        //QFile::remove(filename);
+        devfile = new QFile(filename);        
         if (!devfile->open(QIODevice::ReadWrite)){
             devfile = nullptr;
             throw INVALID_SRC_FILE{};
