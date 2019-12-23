@@ -31,3 +31,7 @@
 - [x] 长文件名
 - [x] 二进制文件正确操作
 - [x] tree
+
+本项目遵守 MIT License 许可条款。
+
+By NorthBankWalker. 2009-2019, All Rights Reserved.

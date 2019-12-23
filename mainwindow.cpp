@@ -260,14 +260,14 @@ void MainWindow::on_addFileButton_clicked()
         }
 
         QStringList filenames = QFileDialog::getOpenFileNames(this, "添加文件");
-        tree->begin_find_free_cluster();
-        tree->revert_FAT(); /* 防止之前的不一致 */
+        tree->begin_find_free_cluster();        
         try {
             /* 开始事务操作 */
             for (QString qs: filenames){
+                tree->revert_FAT(); /* 防止之前的不一致 */
                 tree->add_file(node, qs);
-            }
-            tree->commit_FAT();
+                tree->commit_FAT();
+            }            
         } catch (INSUFFICIENT_SPACE) {
             QMessageBox::critical(nullptr, "错误", "空间不足！");
             tree->revert_FAT();
@@ -275,7 +275,6 @@ void MainWindow::on_addFileButton_clicked()
             QMessageBox::critical(nullptr, "错误", "请检查是否被其他文件占用！");
             tree->revert_FAT();
         }
-
         tree->end_find_free_cluster();
         fflush();
     }
