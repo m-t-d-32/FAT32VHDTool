@@ -51,8 +51,6 @@ private:
     Tree * tree;
     QModelIndex selected_index;
 
-    void extract_file(QString destFile, Tree::Node * node, DBROperator * reader);
-
     void set_tree(Tree::Node * root, FileItem * item);
 
     void reset_tree_item_width();

@@ -29,18 +29,18 @@ private:
 public:
 
     FAT32FileReader(FileOperator * direct_reader, DBR dbr_info){
-        file_sectors["file name"] = std::pair<int, int>(0x00, 8);
-        file_sectors["extra name"] = std::pair<int, int>(0x08, 3);
-        file_sectors["file type"] = std::pair<int, int>(0x0b, 1);
-        file_sectors["high cluster"] = std::pair<int, int>(0x14, 2);
-        file_sectors["low cluster"] = std::pair<int, int>(0x1a, 2);
-        file_sectors["file size"] = std::pair<int, int>(0x1c, 4);
+        file_sectors["file name"] = std::pair<unsigned, unsigned>(0x00, 8);
+        file_sectors["extra name"] = std::pair<unsigned, unsigned>(0x08, 3);
+        file_sectors["file type"] = std::pair<unsigned, unsigned>(0x0b, 1);
+        file_sectors["high cluster"] = std::pair<unsigned, unsigned>(0x14, 2);
+        file_sectors["low cluster"] = std::pair<unsigned, unsigned>(0x1a, 2);
+        file_sectors["file size"] = std::pair<unsigned, unsigned>(0x1c, 4);
 
-        file_sectors["create date"] = std::pair<int, int>(0x10, 2);
-        file_sectors["create time"] = std::pair<int, int>(0x0e, 2);
-        file_sectors["create mms"] = std::pair<int, int>(0x0d, 1);
-        file_sectors["modified date"] = std::pair<int, int>(0x18, 2);
-        file_sectors["modified time"] = std::pair<int, int>(0x16, 2);
+        file_sectors["create date"] = std::pair<unsigned, unsigned>(0x10, 2);
+        file_sectors["create time"] = std::pair<unsigned, unsigned>(0x0e, 2);
+        file_sectors["create mms"] = std::pair<unsigned, unsigned>(0x0d, 1);
+        file_sectors["modified date"] = std::pair<unsigned, unsigned>(0x18, 2);
+        file_sectors["modified time"] = std::pair<unsigned, unsigned>(0x16, 2);
 
         this->file_operator = direct_reader;
         this->dbr_info = dbr_info;
@@ -64,7 +64,7 @@ public:
                 unsigned begin = (dbr_info.cluster_size * (clusters[clusters_index] - dbr_info.root_cluster)
                       + dbr_info.reserved_section_count + dbr_info.table_count * dbr_info.table_section_count) * dbr_info.section_size;
                 begin += cluster_item_index * EVERY_ITEM_LENGTH;
-                std::pair<int, int> filenameinfo = file_sectors["file name"];
+                std::pair<unsigned, unsigned> filenameinfo = file_sectors["file name"];
                 unsigned i = 0;
                 for (i = 0; i < filenameinfo.second; ++i){
                     result.file_name[i] = file_operator->read_bytes(filenameinfo.first + begin + i, 1);
@@ -73,7 +73,7 @@ public:
                 for (; i < sizeof(result.file_name); ++i){
                     result.file_name[i] = 0;
                 }
-                std::pair<int, int> extranameinfo = file_sectors["extra name"];
+                std::pair<unsigned, unsigned> extranameinfo = file_sectors["extra name"];
                 for (i = 0; i < extranameinfo.second; ++i){
                     result.extra_name[i] = file_operator->read_bytes(extranameinfo.first + begin + i, 1);
                     if (result.extra_name[i] == ' ') break;
@@ -210,7 +210,7 @@ public:
                   + dbr_info.reserved_section_count + dbr_info.table_count * dbr_info.table_section_count) * dbr_info.section_size;
             begin += cluster_item_index * EVERY_ITEM_LENGTH;
 
-            std::pair<int, int> filenameinfo = file_sectors["file name"];
+            std::pair<unsigned, unsigned> filenameinfo = file_sectors["file name"];
             unsigned i = 0;
             result.file_name[0] = file_operator->read_bytes(filenameinfo.first + begin, 1);
             if (!result.file_name[0] || result.file_name[i] == ' ')

@@ -17,8 +17,10 @@ class FileOperator {
 private:
     QFile * devfile;
 public:
-    FileOperator(QString filename){
-        //QFile::remove(filename);
+    FileOperator(QString filename, bool remove){
+        if (remove){
+            QFile::remove(filename);
+        }
         devfile = new QFile(filename);        
         if (!devfile->open(QIODevice::ReadWrite)){
             devfile = nullptr;
@@ -60,12 +62,13 @@ public:
      * 获取文件大小
      */
     unsigned get_file_size(){
-        return QFileInfo(*devfile).size();
+        QFileInfo info(*devfile);
+        return info.size();
     }
 
     void append_size(unsigned l){
         devfile->seek(l - 1);
-        devfile->write("w", 1);
+        devfile->write("\0", 1);
         devfile->seek(0);
     }
 

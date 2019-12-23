@@ -8,6 +8,7 @@
 #include <cmath>
 #include <algorithm>
 #include <timer.h>
+#include <QDir>
 
 #ifndef TREE_H
 #define TREE_H
@@ -41,7 +42,7 @@ private:
         for (unsigned i = 0; i < depth; ++i){
             std::cerr << "-";
         }
-        qDebug() << current_file.long_filename;
+        qDebug() << current_file.long_filename << " " << current_file.size;
 
         if (current_file.file_type & 0x10){
             ++depth;
@@ -160,6 +161,55 @@ public:
         end_find_free_cluster();
     }
 
+    void extract_file(QString destFile, Tree::Node * node, DBROperator * reader){
+        FAT32_file fileinfo = node->file;
+        if (is_file(node->file)){
+
+            FileOperator * f = new FileOperator(destFile, true);
+            DBR dbr = reader->get_dbr();
+            unsigned allsize = 0;
+
+            unsigned size_every = dbr.cluster_size * dbr.section_size;
+            char * buffer = new char[size_every];
+            while (fileinfo.cluster != INVALID_FILE_CLUSTER){
+                unsigned fat_begin = dbr.reserved_section_count * dbr.section_size;
+                unsigned cluster_begin = fat_begin + dbr.table_count * dbr.table_section_count * dbr.section_size;
+                cluster_begin -= dbr.root_cluster * size_every;
+
+                unsigned begin = fileinfo.cluster * size_every + cluster_begin;
+                unsigned size = size_every > fileinfo.size ? fileinfo.size : size_every;
+                reader->get_file_operator()->read_blocks(begin, size, buffer);
+                f->write_blocks(allsize, size, buffer);
+
+                fileinfo.size -= size;
+                if (fileinfo.size <= 0){
+                    break;
+                }
+                fileinfo.cluster = reader->get_next_cluster(fileinfo.cluster);
+                allsize += size;
+            }
+            //qDebug() << "------------allsize------------" << allsize;
+            delete []buffer;
+            delete f;
+        }
+        else if (is_folder(node->file)){
+            QDir * d = new QDir();
+            if (!d->exists(destFile)){
+                bool ok = d->mkdir(destFile);
+                delete d;
+                if(!ok){
+                    throw INVALID_SRC_FILE{};
+                    return;
+                }
+            }
+            for (Node * child: node->children){
+                QString qs = child->file.long_filename;
+                QString path = QDir(destFile).filePath(qs);
+                extract_file(path, child, reader);
+            }
+        }
+    }
+
     void add_file(Node * parent, QString filepath){
         QString filename = get_filename_without_path(filepath);
         /* 只是添加普通文件，父目录是node */
@@ -169,7 +219,7 @@ public:
 
         /* 获取需要占几个簇，并写入FAT表 */
         std::vector<unsigned> occupy_clusters;
-        FileOperator src_operator(filepath);
+        FileOperator src_operator(filepath, false);
         unsigned size = src_operator.get_file_size();
         DBR dbr = dbr_operator->get_dbr();
         unsigned fat_begin = dbr.reserved_section_count * dbr.section_size;
@@ -217,7 +267,7 @@ public:
                 dbr_operator->get_file_operator()->write_blocks(dest_begin, size_every, buffer);
             }
             else {
-                unsigned remains = size - cluster_count * size_every;
+                unsigned remains = size - (cluster_count - 1) * size_every;
                 memset(buffer, 0, size_every);
                 src_operator.read_blocks(src_begin, remains, buffer);
                 dbr_operator->get_file_operator()->write_blocks(dest_begin, remains, buffer);
@@ -489,6 +539,9 @@ public:
             while (!is_invalid_cluster(now_cluster)){
                 cluster_occupied.push_back(now_cluster);
                 now_cluster = dbr_operator->get_next_cluster(now_cluster);
+            }
+            for (Node * child: node->children){
+                delete_file(child);
             }
             delete_all(cluster_occupied);
         }

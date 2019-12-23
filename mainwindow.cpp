@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     tree = nullptr;
 }
 
-void MainWindow::resizeEvent(QResizeEvent * event){
+void MainWindow::resizeEvent(QResizeEvent *){
     reset_tree_item_width();
 }
 
@@ -46,8 +46,16 @@ void MainWindow::on_newFile_triggered()
         QString filename = QFileDialog::getSaveFileName(this,
                   "保存虚拟硬盘文件", nullptr, "虚拟硬盘文件(*.c51);;所有文件(*)");
         if (filename.length() > 0){
-            try {
-                direct_operator = new FileOperator(filename);
+            if (direct_operator){
+                delete direct_operator;
+                direct_operator = nullptr;
+            }
+            if (dbr_operator){
+                delete dbr_operator;
+                dbr_operator = nullptr;
+            }
+            try {                
+                direct_operator = new FileOperator(filename, true);
                 dbr_operator = new DBROperator();
                 dbr_operator->init_dbr(creator->get_section_size(), creator->get_cluster_size(), creator->get_create_size(), direct_operator);
                 QMessageBox::information(nullptr, "成功", "创建文件成功");
@@ -100,7 +108,7 @@ void MainWindow::on_openFile_triggered()
     }
 
     try {
-        direct_operator = new FileOperator(filename);
+        direct_operator = new FileOperator(filename, false);
         dbr_operator = new DBROperator();
         dbr_operator->init_dbr(direct_operator);
         dbr_operator->verify_fat32();
@@ -151,54 +159,6 @@ void MainWindow::fflush(){
     }
 }
 
-void MainWindow::extract_file(QString destFile, Tree::Node * node, DBROperator * reader){
-    FAT32_file fileinfo = node->file;
-    if (is_file(node->file)){
-        QFile * f = new QFile(destFile);
-        if (!f->open(QIODevice::ReadWrite)){
-            delete f;
-            QMessageBox::warning(nullptr, "写入失败！", "写入文件" + destFile + "失败！");
-            return;
-        }
-        DBR dbr_info = reader->get_dbr();
-
-        char * buffer = new char[dbr_info.cluster_size * dbr_info.section_size];
-        while (fileinfo.cluster != INVALID_FILE_CLUSTER){
-            unsigned begin = (dbr_info.cluster_size * (fileinfo.cluster - dbr_info.root_cluster)
-            + dbr_info.reserved_section_count + dbr_info.table_count * dbr_info.table_section_count) * dbr_info.section_size;
-            unsigned size = dbr_info.cluster_size * dbr_info.section_size >
-                    fileinfo.size ? fileinfo.size : dbr_info.cluster_size * dbr_info.section_size;
-            reader->get_file_operator()->read_blocks(begin, size, buffer);
-            f->write(buffer, size);
-
-            fileinfo.size -= size;
-            if (fileinfo.size <= 0){
-                break;
-            }
-            fileinfo.cluster = reader->get_next_cluster(fileinfo.cluster);
-        }
-        delete []buffer;
-        f->close();
-        delete f;
-    }
-    else if (is_folder(node->file)){
-        QDir * d = new QDir();
-        if (!d->exists(destFile)){
-            bool ok = d->mkdir(destFile);
-            delete d;
-            if(!ok){
-                QMessageBox::warning(nullptr, "创建文件夹", "文件夹" + destFile + "创建失败！");
-                return;
-            }
-        }
-        for (Tree::Node * child: node->children){
-            QString qs = child->file.long_filename;
-            QString path = QDir(destFile).filePath(qs);
-            extract_file(path, child, reader);
-        }
-    }
-}
-
 void MainWindow::on_extractButton_clicked()
 {
     if (selected_index.row() < 0){
@@ -210,7 +170,7 @@ void MainWindow::on_extractButton_clicked()
         QString filename = QFileDialog::getSaveFileName(this,
             "请选择要保存的路径", defaultName, "所有文件(*)");
         if (filename.length() > 0){
-            extract_file(filename, selected_item->get_node(), dbr_operator);
+            tree->extract_file(filename, selected_item->get_node(), dbr_operator);
             QMessageBox::information(nullptr, "提取", "提取完毕！");
         }
     }
@@ -275,7 +235,7 @@ void MainWindow::on_addFileButton_clicked()
             QMessageBox::critical(nullptr, "错误", "请检查是否被其他文件占用！");
             tree->revert_FAT();
         }
-        tree->end_find_free_cluster();
+        tree->end_find_free_cluster();        
         fflush();
     }
 }
